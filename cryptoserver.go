@@ -9,18 +9,21 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"unsafe"
 
 	"github.com/gorilla/websocket"
 )
 
-func decryptCaesar(str string) string {
-	p := C.CString(str)
+func decryptCaesar(str string, key string) (string, string) {
+	p, k := C.CString(str), C.CString(key)
 	defer C.free(unsafe.Pointer(p))
-	res := C.decrypt_caesar(p)
+	defer C.free(unsafe.Pointer(k))
+	res := C.decrypt_caesar(p, &k)
 	defer C.free(unsafe.Pointer(res))
-	return C.GoString(res)
+	return C.GoString(res), C.GoString(k)
 }
 
 var upgrader = websocket.Upgrader{
@@ -28,20 +31,22 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-type Query struct {
+type Data struct {
 	CipherType string `json:"cipherType"`
 	Message    string `json:"message"`
+	Key        string `json:"key"`
 }
 
 func main() {
-	http.HandleFunc("/crypto", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("%s connected!\n", r.RemoteAddr)
+	http.HandleFunc("/crypto_ws", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("%s connected using websockets!\n", r.RemoteAddr)
 		conn, _ := upgrader.Upgrade(w, r, nil)
 		defer conn.Close()
 		_, msg, _ := conn.ReadMessage()
-		var query Query
+		var query Data
 		var res string
-		fmt.Printf("Received query: %s\n", string(msg[:]))
+		var key_res string
+		fmt.Printf("Received data: %s\n", string(msg[:]))
 		err := json.Unmarshal(msg, &query)
 		if err != nil {
 			fmt.Printf("Bad query structure!\n")
@@ -49,10 +54,20 @@ func main() {
 		}
 		switch query.CipherType {
 		case "caesar":
-			res = decryptCaesar(query.Message)
+			res, key_res = decryptCaesar(query.Message, query.Key)
 		}
-		fmt.Printf("Returning the result: %s\n", res)
-		conn.WriteMessage(websocket.TextMessage, []byte(res))
+		fmt.Printf("Returning the result: %s, key = %s\n", res, key_res)
+		var result Data
+		result.Key = key_res
+		result.Message = res
+		result.CipherType = query.CipherType
+		conn.WriteJSON(result)
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("%s connected to mainpage!\n", r.RemoteAddr)
+		html_file, _ := os.Open("index.html")
+		defer html_file.Close()
+		io.Copy(w, html_file)
 	})
 	fmt.Printf("Running the SERVER!")
 	err := http.ListenAndServe(":9000", nil)

@@ -6,9 +6,9 @@
 extern "C" {
 #endif
 
-const char* decrypt_caesar(const char *msg) {
+const char* decrypt_caesar(const char *msg, char **key) {
     void *caesar_decipherer = new caesarCipher;
-    const char *res = reinterpret_cast<caesarCipher*>(caesar_decipherer)->decrypt(msg);
+    const char *res = reinterpret_cast<caesarCipher*>(caesar_decipherer)->decrypt(msg, key);
     delete reinterpret_cast<caesarCipher*>(caesar_decipherer);
     return res;
 }

@@ -31,10 +31,7 @@ public:
             }
             freq_sample[l - 'a']++;
         }
-        long n{0};
-        for (long i : freq_sample) {
-            n += i;
-        }
+        long n{text.size()};
         double chi_squared{0};
         for (int i{0}; i < 26; i++) {
             chi_squared += (freq_sample[i] - n*freq[i])*(freq_sample[i] - n*freq[i])/(n * freq[i]);

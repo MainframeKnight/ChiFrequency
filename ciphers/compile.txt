@@ -1,4 +1,0 @@
-gcc purecfile.c -L . -Wl,-rpath=. -lcaesar -o test => compiles purecfile.c linking libcaesar.so
-from . (current directory). When test is launched it looks for the library in .(current dir).
-
-g++ -shared -fpic chandle.cpp -o libcaesar.so => compile a shared library.
