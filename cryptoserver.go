@@ -18,9 +18,15 @@ import (
 )
 
 func decryptCaesar(str string, key string) (string, string) {
-	p, k := C.CString(str), C.CString(key)
+	p := C.CString(str)
 	defer C.free(unsafe.Pointer(p))
-	defer C.free(unsafe.Pointer(k))
+	var k *C.char
+	if key == "" {
+		k = nil
+	} else {
+		k = C.CString(key)
+		defer C.free(unsafe.Pointer(k))
+	}
 	res := C.decrypt_caesar(p, &k)
 	defer C.free(unsafe.Pointer(res))
 	return C.GoString(res), C.GoString(k)
@@ -69,6 +75,7 @@ func main() {
 		defer html_file.Close()
 		io.Copy(w, html_file)
 	})
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	fmt.Printf("Running the SERVER!")
 	err := http.ListenAndServe(":9000", nil)
 	if err != nil {
