@@ -3,7 +3,6 @@
 #include<stdexcept>
 #include<fstream>
 #include<iostream>
-#include<queue>
 class BigramAnalyser {
 public:
     BigramAnalyser(const std::string& filename = "bigrams.txt") : bigrams{} {
@@ -15,6 +14,7 @@ public:
         }
         for (int i{0}; i < 676; i++) {
             file >> input_bigram >> input;
+            ordered_bigrams[i] = std::make_pair(input_bigram[0] - 'a', input_bigram[1] - 'a');
             if (input < 10e-12) {
                 bigrams[input_bigram[0] - 'a'][input_bigram[1] - 'a'] = 10e-10;
             } else {
@@ -39,29 +39,29 @@ public:
         for (long i{1}; i < cleared_str.size(); i++) {
             if (cleared_str[i-1] != ' ' && cleared_str[i] != ' ') {
                 sample_bigrams[cleared_str[i-1] - 'a'][cleared_str[i] - 'a']++;
-            } else if (cleared_str[i] != ' ') {
+            } else if (cleared_str[i] == ' ' && cleared_str[i-1] != ' ') {
                 spaces++;
             }
         }
         long n{text.size() - 1 - spaces};
-        std::priority_queue<double> space_queue{};
         if (!spaces) {
             spaces = text.size()*10/47; // average number of spaces
+        }
+        for (int i{675}; i >= 0 && spaces > 0; i--) {
+            auto& [fst, snd] = ordered_bigrams[i];
+            while (sample_bigrams[fst][snd] > 0 && spaces > 0) {
+                spaces--;
+                sample_bigrams[fst][snd]--;
+                n--;
+            }
         }
         double chi_squared{0};
         for (int i{0}; i < 26; i++) {
             for (int j{0}; j < 26; j++) {
                 double val{((sample_bigrams[i][j]/static_cast<double>(n) - bigrams[i][j])/bigrams[i][j])
                     *(sample_bigrams[i][j]/static_cast<double>(n) - bigrams[i][j])};
-                if (space_queue.empty() || val > space_queue.top()) {
-                    space_queue.push(val);
-                }
                 chi_squared += val;
             }
-        }
-        for (int i{0}; i < spaces; i++) {
-            chi_squared -= space_queue.top();
-            space_queue.pop();
         }
         return chi_squared * n;
     }
@@ -78,5 +78,6 @@ private:
             }
         }
     }
+    std::array<std::pair<int, int>, 676> ordered_bigrams;
     std::array<std::array<double, 26>, 26> bigrams;
 };
