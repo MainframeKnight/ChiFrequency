@@ -1,6 +1,6 @@
 # ChiFrequency
 The **goals** of this project are:
-- to design and implement a tool for statistical analysis of plaintexts;
+- to design and implement a tool for statistical analysis of ciphertexts;
 - to give some examples of its usage in cryptography (in the current state the only cipher supported is the Caesar cipher);
 - to design a client-server model using GO and JS to create a user-friendly web-experience.
 
