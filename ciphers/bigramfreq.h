@@ -1,8 +1,10 @@
+#pragma once
 #include<array>
 #include<string>
 #include<stdexcept>
 #include<fstream>
 #include<iostream>
+#include<vector>
 class BigramAnalyser {
 public:
     BigramAnalyser(const std::string& filename = "bigrams.txt") : bigrams{} {
@@ -36,23 +38,24 @@ public:
         if (!cleared_str.size()) {
             throw std::invalid_argument{"Input string too short."};
         }
+        long n{0};
         for (long i{1}; i < cleared_str.size(); i++) {
-            if (cleared_str[i-1] != ' ' && cleared_str[i] != ' ') {
+            if (isalpha(cleared_str[i-1]) && isalpha(cleared_str[i])) {
+                n++;
                 sample_bigrams[cleared_str[i-1] - 'a'][cleared_str[i] - 'a']++;
             } else if (cleared_str[i] == ' ' && cleared_str[i-1] != ' ') {
                 spaces++;
             }
         }
-        long n{text.size() - 1 - spaces};
         if (!spaces) {
             spaces = text.size()*10/47; // average number of spaces
-        }
-        for (int i{675}; i >= 0 && spaces > 0; i--) {
-            auto& [fst, snd] = ordered_bigrams[i];
-            while (sample_bigrams[fst][snd] > 0 && spaces > 0) {
-                spaces--;
-                sample_bigrams[fst][snd]--;
-                n--;
+            for (int i{675}; i >= 0 && spaces > 0; i--) {
+                auto& [fst, snd] = ordered_bigrams[i];
+                while (sample_bigrams[fst][snd] > 0 && spaces > 0) {
+                    spaces--;
+                    sample_bigrams[fst][snd]--;
+                    n--;
+                }
             }
         }
         double chi_squared{0};
@@ -71,8 +74,8 @@ public:
 private:
     void clearString(std::string& str) const {
         for (long i{0}; i < str.size(); i++) {
-            if (std::string(",.;!?()").find(str[i]) != std::string::npos) {
-                str.erase(str.begin() + i);
+            if (!isalpha(str[i])) {
+                str[i] = ' ';
             } else {
                 str[i] = std::tolower(str[i]);
             }
@@ -81,3 +84,42 @@ private:
     std::array<std::pair<int, int>, 676> ordered_bigrams;
     std::array<std::array<double, 26>, 26> bigrams;
 };
+
+// For index of coincidence first iteration in Viginere cipher.
+class LetterAnalyser {
+    public:
+        LetterAnalyser(const std::string& filename = "letter.txt") : freq{} {
+            double input;
+            std::ifstream file{filename};
+            if (file.fail()) {
+                throw std::invalid_argument{"File could not be opened."};
+            }
+            for (int i{0}; i < 26; i++) {
+                file >> input;
+                freq.emplace_back(input);
+            }
+            file.close();
+        }
+        double computeTestStatistic(const std::string& text) const {
+            std::vector<long> freq_sample{};
+            for (int i{0}; i < 26; i++) {
+                freq_sample.emplace(freq_sample.begin(), 0);
+            }
+            long n{0};
+            for (auto& i : text) {
+                char l{static_cast<char>(std::tolower(i))};
+                if (l < 'a' || l > 'z') {
+                    continue;
+                }
+                n++;
+                freq_sample[l - 'a']++;
+            }
+            double chi_squared{0};
+            for (int i{0}; i < 26; i++) {
+                chi_squared += (freq_sample[i] - n*freq[i])*(freq_sample[i] - n*freq[i])/(n * freq[i]);
+            }
+            return chi_squared;
+        }
+    private:
+        std::vector<double> freq;
+    };

@@ -1,4 +1,4 @@
-function decipher(text, key) {
+function decipher(text, key, cipher) {
     return new Promise( (resolve, reject) => {
         let ws_conn = new WebSocket("ws://localhost:9000/crypto_ws");
         ws_conn.onmessage = (event) => {
@@ -9,7 +9,7 @@ function decipher(text, key) {
         };
         ws_conn.onopen = () => {
             ws_conn.send(JSON.stringify({
-                cipherType: "caesar",
+                cipherType: cipher,
                 message: text,
                 key: key
             }));
@@ -29,13 +29,14 @@ document.querySelector("#decipher_button").onclick = () => {
         document.querySelector("#result").value = "Ciphertext does not contain any letters.";
         return;
     }
+    let ciphertype = document.querySelector("#cipher_select").value;
     if (document.querySelector("#automatic").checked) {
-        decipher(ciphertext, "").then( (result) => {
+        decipher(ciphertext, "", ciphertype).then( (result) => {
             document.querySelector("#result").value = "Plaintext: " + 
                 result.message + "\nKey: " + result.key;
         });
     } else {
-        decipher(ciphertext, document.querySelector("#key_input").value).then( (result) => {
+        decipher(ciphertext, document.querySelector("#key_input").value, ciphertype).then( (result) => {
             document.querySelector("#result").value = "Plaintext: " + result.message;
         });
     }

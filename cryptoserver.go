@@ -1,7 +1,7 @@
 package main
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/lib/linux -L ./ciphers -Wl,-rpath=./ciphers -lcaesar
+#cgo LDFLAGS: -L${SRCDIR}/lib/linux -L ./ciphers -Wl,-rpath=./ciphers -lcipher
 #include <stdlib.h>
 #include "ciphers/chandle.h"
 */
@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func decryptCaesar(str string, key string) (string, string) {
+func decrypt(str string, key string, cipher string) (string, string) {
 	p := C.CString(str)
 	defer C.free(unsafe.Pointer(p))
 	var k *C.char
@@ -25,9 +25,15 @@ func decryptCaesar(str string, key string) (string, string) {
 		k = nil
 	} else {
 		k = C.CString(key)
-		defer C.free(unsafe.Pointer(k))
 	}
-	res := C.decrypt_caesar(p, &k)
+	defer C.free(unsafe.Pointer(k))
+	var res *C.char
+	switch cipher {
+	case "caesar":
+		res = C.decrypt_caesar(p, &k)
+	case "viginere":
+		res = C.decrypt_viginere(p, &k)
+	}
 	defer C.free(unsafe.Pointer(res))
 	return C.GoString(res), C.GoString(k)
 }
@@ -58,10 +64,7 @@ func main() {
 			fmt.Printf("Bad query structure!\n")
 			return
 		}
-		switch query.CipherType {
-		case "caesar":
-			res, key_res = decryptCaesar(query.Message, query.Key)
-		}
+		res, key_res = decrypt(query.Message, query.Key, query.CipherType)
 		fmt.Printf("Returning the result: %s, key = %s\n", res, key_res)
 		var result Data
 		result.Key = key_res

@@ -1,3 +1,4 @@
+#pragma once
 #include"bigramfreq.h"
 #include<utility>
 #include<algorithm>
@@ -48,31 +49,25 @@ public:
         ret[string_copy.size()] = '\0';
         return ret;
     }
-private:
     void caesarByOne(std::string& text) {
         for (auto& i : text) {
-            if (i == ' ') {
-                continue;
-            }
-            if (i + 1 > 'z') {
-                i = 'a';
-            } else {
-                i++;
+            if (isupper(i)) {
+                i = (i - 'A' + 1) % 26 + 'A';
+            } else if (islower(i)) {
+                i = (i - 'a' + 1) % 26 + 'a';
             }
         }
     }
     std::string caesar(const std::string& text, int key) {
-        std::string res;
+        std::string res{};
         for (auto& i : text) {
-            if (i == ' ') {
-                res += ' ';
+            if (!isalpha(i)) {
+                res += i;
             }
-            else {
-                if (i + key > 'z') {
-                    res += std::string(1, i + key - 'z' + 'a' - 1);
-                } else {
-                    res += std::string(1, i + key);
-                }
+            else if (islower(i)) {
+                res += (i - 'a' + key) % 26 + 'a';
+            } else {
+                res += (i - 'A' + key) % 26 + 'A';
             }
         }
         return res;
