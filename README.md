@@ -1,7 +1,7 @@
 # ChiFrequency
 The **goals** of this project are:
 - to design and implement a tool for statistical analysis of ciphertexts;
-- to give some examples of its usage in cryptography (in the current state the only cipher supported is the Caesar cipher);
+- to give some examples of its usage in cryptography (in the current state the supported ciphers are the Caesar cipher and the Viginere cipher);
 - to design a client-server model using GO and JS to create a user-friendly web-experience.
 
 The main statistical test used here is the **chi-squared test** for bigrams (combinations of pairs of letters are used as groups) with added support for inclusion of spaces in ciphertext.
