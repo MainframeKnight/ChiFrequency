@@ -9,13 +9,14 @@
         <header><div id="head">ChiFrequency</div></header>
         <div id="content">
             <div class="cipher_select_box">
-                <p>Select a cipher:</p>
-                <select id="cipher_select" title="Select the cipher to use.">
+                <p>Select a decryption mode:</p>
+                <select id="cipher_select" title="Select the decryption mode.">
                     <option value="caesar">Caesar cipher</option>
                     <option value="viginere">Viginere cipher</option>
+                    <option value="textsteg">Text Steganalysis</option>
                 </select>
             </div>
-            <div class="parameter_box">
+            <div class="parameter_box" id="decipher">
                 <h2>Deciphering Parameters</h2>
                 <div id="ciphertext_box">
                     <p>Input the ciphertext:<p>
@@ -30,6 +31,14 @@
                     <textarea placeholder="key..." id="key_input"></textarea>
                 </div>
                 <button id="decipher_button">Decipher!</button>
+            </div>
+            <div style="display: none;" class="parameter_box" id="steg">
+                <h2>Text Steganalysis</h2>
+                <div id="steg_box">
+                    <p>Input the text to analyze:<p>
+                    <textarea placeholder="text with hidden info..." id="steganotext"></textarea>
+                </div>
+                <button id="steg_button">Analyze!</button>
             </div>
             <textarea id="result" readonly placeholder="The results will be displayed here."></textarea>
         </div>

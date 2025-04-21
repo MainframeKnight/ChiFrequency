@@ -12,10 +12,110 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
+	"unicode"
 	"unsafe"
 
 	"github.com/gorilla/websocket"
 )
+
+func check_first_letters(str string, out *string) {
+	eng_lets := "qwertyuioplkjhgfdsazxcvbnm"
+	first_lets := ""
+	space := false
+	for _, i := range str {
+		if !space && strings.Contains(eng_lets, strings.ToLower(string(i))) {
+			first_lets += string(unicode.ToLower(i))
+			space = true
+		} else if !space {
+			space = true
+		} else if space &&
+			unicode.IsSpace(i) {
+			space = false
+		}
+	}
+	if len(first_lets) < 2 {
+		return
+	}
+	p := C.CString(first_lets)
+	defer C.free(unsafe.Pointer(p))
+	if C.compute_stat(p) <= 300 {
+		*out += "Found text \"" + first_lets + "\" hidden by taking first letters.\n"
+	}
+}
+
+func zero_width_check(msg string, out *string) {
+	secret_data := ""
+	for _, i := range msg {
+		if i == rune(0x200B) {
+			secret_data += "0"
+		} else if i == rune(0xFEFF) {
+			secret_data += "1"
+		}
+	}
+	if len(secret_data) == 0 {
+		return
+	}
+	if len(secret_data)%8 != 0 {
+		*out += "Found zero-width spaces in text (non-aligned as byte array data).\n"
+		return
+	}
+	ascii_bytes := []byte{}
+	for i := 0; i < len(secret_data); i += 8 {
+		v, _ := strconv.ParseInt(secret_data[i:i+8], 2, 8)
+		ascii_bytes = append(ascii_bytes, byte(v))
+	}
+	res := string(ascii_bytes[:])
+	for _, i := range res {
+		if !unicode.IsDigit(i) && !unicode.IsLetter(i) && !unicode.IsPunct(i) {
+			return
+		}
+	}
+	p := C.CString(res)
+	defer C.free(unsafe.Pointer(p))
+	if C.compute_stat(p) <= 300 {
+		*out += "Found text \"" + res + "\" hidden by using zero-width spaces.\n"
+	} else {
+		*out += "Found zero-width spaces in text.\n"
+	}
+}
+
+func susp_char_check(msg string, out *string) {
+	eng_lets := "qwertyuioplkjhgfdsazxcvbnm"
+	punct := "~!@#$%^&*()-+=_`{}[]\\|\"':;<>,./? \t"
+	is_start, is_space, found_start, found_newl := true, false, false, false
+	for pos, i := range msg {
+		if unicode.IsSpace(i) && is_start && !found_start {
+			found_start = true
+		} else if i == '\n' && is_space && !found_newl || pos == len(msg)-1 && unicode.IsSpace(i) {
+			found_newl = true
+		}
+		if !unicode.IsDigit(i) && !strings.Contains(eng_lets, strings.ToLower(string(i))) &&
+			!strings.Contains(punct, strings.ToLower(string(i))) && i != 0x200B && i != 0xFEFF {
+			*out += "Found a suspicious symbol with unicode code " + strconv.Itoa(int(i)) + ".\n"
+		}
+		is_space = unicode.IsSpace(i) && i != '\n'
+		is_start = i == '\n'
+	}
+	if found_start {
+		*out += "Found line starting by whitespace.\n"
+	}
+	if found_newl {
+		*out += "Found line ending by whitespace.\n"
+	}
+}
+
+func steganalysis(str string) string {
+	res := ""
+	check_first_letters(str, &res)
+	zero_width_check(str, &res)
+	susp_char_check(str, &res)
+	if len(res) == 0 {
+		res += "No secrets found in text."
+	}
+	return res
+}
 
 func decrypt(str string, key string, cipher string) (string, string) {
 	p := C.CString(str)
@@ -33,6 +133,9 @@ func decrypt(str string, key string, cipher string) (string, string) {
 		res = C.decrypt_caesar(p, &k)
 	case "viginere":
 		res = C.decrypt_viginere(p, &k)
+	case "steg":
+		res0 := steganalysis(str)
+		return res0, ""
 	}
 	defer C.free(unsafe.Pointer(res))
 	return C.GoString(res), C.GoString(k)

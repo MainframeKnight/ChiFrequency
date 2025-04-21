@@ -21,6 +21,16 @@ const char* decrypt_viginere(const char *msg, char **key) {
     return res;
 }
 
+double compute_stat(const char* msg) {
+    BigramAnalyser ba{};
+    try {
+        return ba.computeTestStatistic(std::string{msg});
+    } catch (std::invalid_argument e) {
+        return INFINITY;
+    }
+    
+}
+
 #ifdef __cplusplus
 }
 #endif

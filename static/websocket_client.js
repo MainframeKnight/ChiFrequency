@@ -17,6 +17,12 @@ function decipher(text, key, cipher) {
     });
 }
 
+document.querySelector("#cipher_select").onchange = () => {
+    let is_steg = document.querySelector("#cipher_select").value == "textsteg";
+    document.querySelector("#decipher").style.display = is_steg ? "none" : "flex";
+    document.querySelector("#steg").style.display = !is_steg ? "none" : "flex";
+}
+
 document.querySelector("#automatic").onchange = () => {
     document.querySelector("#key").hidden = !document.querySelector("#key").hidden;
 }
@@ -40,4 +46,11 @@ document.querySelector("#decipher_button").onclick = () => {
             document.querySelector("#result").value = "Plaintext: " + result.message;
         });
     }
+}
+
+document.querySelector("#steg_button").onclick = () => {
+    let ciphertext = document.querySelector("#steganotext").value;
+    decipher(ciphertext, "", "steg").then( (result) => {
+        document.querySelector("#result").value = "The results of steganalysis:\n" + result.message;
+    });
 }
